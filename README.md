@@ -1,5 +1,10 @@
 # sem-version
 
+[![Release](https://img.shields.io/github/v/release/TheScenery/sem-version?style=flat-square)](https://github.com/TheScenery/sem-version/releases)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/TheScenery/sem-version?style=flat-square)](https://go.dev/)
+[![License](https://img.shields.io/github/license/TheScenery/sem-version?style=flat-square)](LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/TheScenery/sem-version?style=flat-square)](https://goreportcard.com/report/github.com/TheScenery/sem-version)
+
 A CLI tool to automatically generate semantic versions based on Git commit history using [Conventional Commits](https://www.conventionalcommits.org/) specification.
 
 ## Installation
