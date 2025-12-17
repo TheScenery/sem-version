@@ -50,6 +50,26 @@ cd sem-version
 go build -o sem-version
 ```
 
+## Demo
+
+Want to see it in action? Run the included demo script:
+
+**Windows (PowerShell)**:
+```powershell
+.\demo.ps1
+```
+
+**macOS / Linux**:
+```bash
+./demo.sh
+```
+
+This script will:
+1. Build the tool locally
+2. Create a temporary git repository
+3. Simulate various commit scenarios (feat, fix, breaking change)
+4. Show you the generated versions
+
 ## Usage
 
 ```bash
