@@ -4,11 +4,40 @@ A CLI tool to automatically generate semantic versions based on Git commit histo
 
 ## Installation
 
+### Go Install
+
 ```bash
 go install github.com/TheScenery/sem-version@latest
 ```
 
-Or build from source:
+### One-liner Script
+
+**macOS (Apple Silicon)**
+```bash
+curl -sSL https://github.com/TheScenery/sem-version/releases/latest/download/sem-version-darwin-arm64 -o /usr/local/bin/sem-version && chmod +x /usr/local/bin/sem-version
+```
+
+**macOS (Intel)**
+```bash
+curl -sSL https://github.com/TheScenery/sem-version/releases/latest/download/sem-version-darwin-amd64 -o /usr/local/bin/sem-version && chmod +x /usr/local/bin/sem-version
+```
+
+**Linux (amd64)**
+```bash
+curl -sSL https://github.com/TheScenery/sem-version/releases/latest/download/sem-version-linux-amd64 -o /usr/local/bin/sem-version && chmod +x /usr/local/bin/sem-version
+```
+
+**Linux (arm64)**
+```bash
+curl -sSL https://github.com/TheScenery/sem-version/releases/latest/download/sem-version-linux-arm64 -o /usr/local/bin/sem-version && chmod +x /usr/local/bin/sem-version
+```
+
+**Windows (PowerShell)**
+```powershell
+Invoke-WebRequest -Uri https://github.com/TheScenery/sem-version/releases/latest/download/sem-version-windows-amd64.exe -OutFile $env:USERPROFILE\bin\sem-version.exe
+```
+
+### Build from Source
 
 ```bash
 git clone https://github.com/TheScenery/sem-version.git
