@@ -1,0 +1,21 @@
+# sem-version configuration
+# Each section contains regex patterns to match commit messages
+
+# Major version bump (breaking changes)
+major:
+  - '^.+!:'                # type!: breaking change
+  - 'BREAKING CHANGE:'     # in commit body
+  - 'BREAKING-CHANGE:'     # alternative format
+
+# Minor version bump (new features)
+minor:
+  - '^feat(\(.+\))?:'      # feat: or feat(scope):
+  - '^feature(\(.+\))?:'   # feature: alias
+
+# Patch version bump (bug fixes, refactoring)
+patch:
+  - '^fix(\(.+\))?:'       # fix:
+  - '^bugfix(\(.+\))?:'    # bugfix: alias
+  - '^hotfix(\(.+\))?:'    # hotfix:
+  - '^refactor(\(.+\))?:'  # refactor:
+  - '^perf(\(.+\))?:'      # perf:

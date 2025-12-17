@@ -62,7 +62,37 @@ sem-version --path /path/to/repo
 
 # Custom prefix
 sem-version --prefix "ver"
+
+# Generate default config file
+sem-version --init
+
+# Use custom config file
+sem-version --config /path/to/.sem-version.yaml
 ```
+
+## Configuration
+
+Generate a default config file with `sem-version --init`, which creates `.sem-version.yaml`:
+
+```yaml
+# Major version bump (breaking changes)
+major:
+  - '^.+!:'                # type!: breaking change
+  - 'BREAKING CHANGE:'     # in commit body
+
+# Minor version bump (new features)
+minor:
+  - '^feat(\(.+\))?:'      # feat: or feat(scope):
+
+# Patch version bump (bug fixes)
+patch:
+  - '^fix(\(.+\))?:'       # fix:
+  - '^hotfix(\(.+\))?:'    # hotfix:
+  - '^refactor(\(.+\))?:'  # refactor:
+  - '^perf(\(.+\))?:'      # perf:
+```
+
+Each section contains **regex patterns** to match commit messages. Customize patterns to fit your workflow.
 
 ## Conventional Commits
 

@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"sem-version/internal/config"
 	"sem-version/internal/git"
-	"sem-version/internal/parser"
 	"sem-version/internal/version"
 )
 
@@ -15,8 +15,10 @@ func main() {
 	// Parse command line flags
 	prefix := flag.String("prefix", "v", "Version prefix (default: v)")
 	repoPath := flag.String("path", ".", "Path to git repository (default: current directory)")
+	configPath := flag.String("config", "", "Path to config file (default: auto-detect .sem-version.yaml)")
 	noPrefix := flag.Bool("no-prefix", false, "Output version without prefix")
 	verbose := flag.Bool("verbose", false, "Show verbose output")
+	initConfig := flag.Bool("init", false, "Generate default config file")
 	flag.Parse()
 
 	// Resolve absolute path
@@ -24,6 +26,35 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error resolving path: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Handle --init command
+	if *initConfig {
+		if err := generateDefaultConfig(absPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error generating config: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("Generated .sem-version.yaml")
+		return
+	}
+
+	// Load configuration
+	var cfg *config.Config
+	if *configPath != "" {
+		cfg, err = config.Load(*configPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading config %s: %v\n", *configPath, err)
+			os.Exit(1)
+		}
+		if *verbose {
+			fmt.Fprintf(os.Stderr, "Using config: %s\n", *configPath)
+		}
+	} else {
+		cfg, err = config.LoadDefault(absPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	// Get the latest tag
@@ -35,7 +66,7 @@ func main() {
 
 	var currentVersion version.Version
 	if latestTag == "" {
-		// No tags found, use initial version v0.0.0 (will bump to v0.1.0 on first feat)
+		// No tags found, use initial version v0.0.0
 		currentVersion = version.Version{Major: 0, Minor: 0, Patch: 0}
 		if *verbose {
 			fmt.Fprintln(os.Stderr, "No existing tags found, starting from v0.0.0")
@@ -75,71 +106,77 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Found %d commits since last tag\n", len(commits))
 	}
 
-	// Parse all commits
-	parsedCommits := make([]parser.ParsedCommit, 0, len(commits))
+	// Analyze commits using config
+	bumpType := version.BumpNone
 	for _, commit := range commits {
-		// Get full commit message for BREAKING CHANGE detection
+		// Get full commit message for better matching
 		fullMessage, err := git.GetFullCommitMessage(absPath, commit.Hash)
 		if err != nil {
 			fullMessage = commit.Message
 		}
-		parsed := parser.ParseCommit(fullMessage)
-		parsedCommits = append(parsedCommits, parsed)
 
-		if *verbose {
-			breakingStr := ""
-			if parsed.IsBreaking {
-				breakingStr = " [BREAKING]"
+		// Check patterns in order of priority: major > minor > patch
+		if cfg.MatchMajor(fullMessage) {
+			bumpType = version.BumpMajorType
+			if *verbose {
+				fmt.Fprintf(os.Stderr, "  - [MAJOR] %s\n", commit.Message)
 			}
-			fmt.Fprintf(os.Stderr, "  - %s: %s%s\n", parsed.Type, parsed.Description, breakingStr)
+			break // Major is highest priority
+		}
+
+		if cfg.MatchMinor(fullMessage) && bumpType < version.BumpMinorType {
+			bumpType = version.BumpMinorType
+			if *verbose {
+				fmt.Fprintf(os.Stderr, "  - [MINOR] %s\n", commit.Message)
+			}
+		} else if cfg.MatchPatch(fullMessage) && bumpType < version.BumpPatchType {
+			bumpType = version.BumpPatchType
+			if *verbose {
+				fmt.Fprintf(os.Stderr, "  - [PATCH] %s\n", commit.Message)
+			}
+		} else if *verbose {
+			fmt.Fprintf(os.Stderr, "  - [SKIP] %s\n", commit.Message)
 		}
 	}
 
 	// Calculate next version
 	var nextVersion version.Version
 	if latestTag == "" {
-		// No existing tag - determine initial version based on commits
-		nextVersion = calculateInitialVersion(parsedCommits)
+		// No existing tag - determine initial version based on bump type
+		nextVersion = calculateInitialVersion(bumpType)
 	} else {
-		nextVersion = version.CalculateNextVersion(currentVersion, parsedCommits)
+		nextVersion = applyBump(currentVersion, bumpType)
 	}
 
 	outputVersion(nextVersion, *prefix, *noPrefix)
 }
 
-// calculateInitialVersion determines the initial version based on commits
-// If there's a breaking change: v1.0.0
-// If there's a feat: v0.1.0
-// Otherwise: v0.0.1
-func calculateInitialVersion(commits []parser.ParsedCommit) version.Version {
-	hasBreaking := false
-	hasFeat := false
-	hasFix := false
-
-	for _, commit := range commits {
-		if commit.IsBreaking {
-			hasBreaking = true
-			break
-		}
-		if commit.Type == parser.TypeFeat {
-			hasFeat = true
-		}
-		if commit.Type == parser.TypeFix || commit.Type == parser.TypeRefactor || commit.Type == parser.TypePerf {
-			hasFix = true
-		}
-	}
-
-	if hasBreaking {
+// calculateInitialVersion determines the initial version based on bump type
+func calculateInitialVersion(bumpType version.BumpType) version.Version {
+	switch bumpType {
+	case version.BumpMajorType:
 		return version.Version{Major: 1, Minor: 0, Patch: 0}
-	}
-	if hasFeat {
+	case version.BumpMinorType:
+		return version.Version{Major: 0, Minor: 1, Patch: 0}
+	case version.BumpPatchType:
+		return version.Version{Major: 0, Minor: 0, Patch: 1}
+	default:
 		return version.Version{Major: 0, Minor: 1, Patch: 0}
 	}
-	if hasFix {
-		return version.Version{Major: 0, Minor: 0, Patch: 1}
+}
+
+// applyBump applies the bump type to the current version
+func applyBump(current version.Version, bumpType version.BumpType) version.Version {
+	switch bumpType {
+	case version.BumpMajorType:
+		return current.BumpMajor()
+	case version.BumpMinorType:
+		return current.BumpMinor()
+	case version.BumpPatchType:
+		return current.BumpPatch()
+	default:
+		return current
 	}
-	// Default to v0.1.0 for initial version
-	return version.Version{Major: 0, Minor: 1, Patch: 0}
 }
 
 func outputVersion(v version.Version, prefix string, noPrefix bool) {
@@ -148,4 +185,15 @@ func outputVersion(v version.Version, prefix string, noPrefix bool) {
 	} else {
 		fmt.Printf("%s%d.%d.%d\n", prefix, v.Major, v.Minor, v.Patch)
 	}
+}
+
+func generateDefaultConfig(dir string) error {
+	configPath := filepath.Join(dir, ".sem-version.yaml")
+
+	// Check if file exists
+	if _, err := os.Stat(configPath); err == nil {
+		return fmt.Errorf("config file already exists: %s", configPath)
+	}
+
+	return os.WriteFile(configPath, []byte(config.DefaultConfigYAML()), 0644)
 }
