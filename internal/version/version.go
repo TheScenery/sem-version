@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"sem-version/internal/parser"
+	"github.com/TheScenery/sem-version/internal/parser"
 )
 
 // Version represents a semantic version

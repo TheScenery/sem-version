@@ -3,7 +3,7 @@ package version
 import (
 	"testing"
 
-	"sem-version/internal/parser"
+	"github.com/TheScenery/sem-version/internal/parser"
 )
 
 func TestParse(t *testing.T) {

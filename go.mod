@@ -1,4 +1,4 @@
-module sem-version
+module github.com/TheScenery/sem-version
 
 go 1.25
 

@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"sem-version/internal/config"
-	"sem-version/internal/git"
-	"sem-version/internal/version"
+	"github.com/TheScenery/sem-version/internal/config"
+	"github.com/TheScenery/sem-version/internal/git"
+	"github.com/TheScenery/sem-version/internal/version"
 )
 
 func main() {
